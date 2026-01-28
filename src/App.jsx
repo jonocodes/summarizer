@@ -93,6 +93,7 @@ export default function TextSummarizer() {
   const isSelectedModelCached = downloadedModels.includes(selectedModel);
   const [hasWebGPU, setHasWebGPU] = useState(null);
   const [forceGPU, setForceGPU] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const detailLabels = ['Brief', 'Concise', 'Moderate', 'Detailed', 'Comprehensive'];
 
   const webgpuModels = [
@@ -117,10 +118,9 @@ export default function TextSummarizer() {
     catch { return {}; }
   });
 
-  const useGPU = hasWebGPU || forceGPU;
-  const localModels = useGPU ? webgpuModels : cpuModels;
-  const models = localModels; // Keep for backward compat
   const isCloudModel = cloudModels.some(m => m.id === selectedModel);
+  const allLocalModels = [...webgpuModels, ...cpuModels];
+  const models = allLocalModels; // Keep for backward compat
   const selectedCloudModel = cloudModels.find(m => m.id === selectedModel);
   const currentProvider = selectedCloudModel?.provider;
   const hasApiKey = currentProvider && apiKeys[currentProvider];
@@ -195,22 +195,32 @@ export default function TextSummarizer() {
 
   useEffect(() => {
     let mounted = true;
+
+    // Detect mobile
+    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+
+    // On mobile, default to Groq cloud model
+    if (mobile && !localStorage.getItem('selectedModel')) {
+      setSelectedModel('groq-llama');
+    }
+
     const checkWebGPU = async () => {
       try {
         if (navigator.gpu) {
           const adapter = await navigator.gpu.requestAdapter();
           if (!mounted) return;
           setHasWebGPU(!!adapter);
-          if (!adapter && !localStorage.getItem('selectedModel')) setSelectedModel('qwen-0.5b-cpu');
+          if (!adapter && !localStorage.getItem('selectedModel') && !mobile) setSelectedModel('qwen-0.5b-cpu');
         } else {
           if (!mounted) return;
           setHasWebGPU(false);
-          if (!localStorage.getItem('selectedModel')) setSelectedModel('qwen-0.5b-cpu');
+          if (!localStorage.getItem('selectedModel') && !mobile) setSelectedModel('qwen-0.5b-cpu');
         }
       } catch {
         if (!mounted) return;
         setHasWebGPU(false);
-        if (!localStorage.getItem('selectedModel')) setSelectedModel('qwen-0.5b-cpu');
+        if (!localStorage.getItem('selectedModel') && !mobile) setSelectedModel('qwen-0.5b-cpu');
       }
     };
     checkWebGPU();
@@ -222,7 +232,9 @@ export default function TextSummarizer() {
     setModelStatus('loading');
     setError('');
 
-    const workerCode = useGPU ? webllmWorkerCode : transformersWorkerCode;
+    // Determine if selected model is GPU or CPU based on which array it's in
+    const isGpuModel = webgpuModels.some(m => m.id === selectedModel);
+    const workerCode = isGpuModel ? webllmWorkerCode : transformersWorkerCode;
     const blob = new Blob([workerCode], { type: 'application/javascript' });
     const worker = new Worker(URL.createObjectURL(blob), { type: 'module' });
     workerRef.current = worker;
@@ -248,8 +260,9 @@ export default function TextSummarizer() {
       if (type === 'error') { setError(payload); setLoading(false); clearInterval(timerRef.current); setModelStatus(prev => prev === 'loading' ? 'idle' : prev); }
     };
 
-    const model = models.find(m => m.id === selectedModel);
-    const modelId = useGPU ? model.mlcId : model.hfId;
+    const gpuModel = webgpuModels.find(m => m.id === selectedModel);
+    const cpuModel = cpuModels.find(m => m.id === selectedModel);
+    const modelId = gpuModel ? gpuModel.mlcId : cpuModel?.hfId;
     worker.postMessage({ type: 'load', payload: { modelId } });
   };
 
@@ -394,25 +407,11 @@ export default function TextSummarizer() {
                 <Cpu className="w-10 h-10 text-purple-300 mx-auto mb-3" />
                 <p className="text-purple-200 text-sm mb-4">Select a model</p>
 
-                <p className="text-purple-400 text-xs mb-2 text-left">On-device (private)</p>
-                <div className="space-y-2 mb-4">
-                  {localModels.map(m => (
-                    <button
-                      key={m.id}
-                      onClick={() => setSelectedModel(m.id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors ${selectedModel === m.id ? 'bg-purple-500/30 border border-purple-500' : 'bg-white/5 hover:bg-white/10 border border-transparent'}`}
-                    >
-                      <div className="text-left">
-                        <p className={`font-medium ${selectedModel === m.id ? 'text-white' : 'text-purple-200'}`}>
-                          {m.name}
-                          {downloadedModels.includes(m.id) && <span className="ml-2 text-xs text-green-400">✓ cached</span>}
-                        </p>
-                        <p className="text-purple-400 text-xs">{m.desc}</p>
-                      </div>
-                      <span className="text-purple-300 text-sm">{m.size}</span>
-                    </button>
-                  ))}
-                </div>
+                {isMobile && (
+                  <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-3 mb-4 text-left">
+                    <p className="text-blue-200 text-sm">On mobile? We recommend <strong>Groq</strong> — it's free and fast. Local models may not work reliably on mobile browsers.</p>
+                  </div>
+                )}
 
                 <p className="text-purple-400 text-xs mb-2 text-left">Cloud APIs (bring your own key)</p>
                 <div className="space-y-2 mb-4">
@@ -430,6 +429,50 @@ export default function TextSummarizer() {
                         <p className="text-purple-400 text-xs">{m.desc}</p>
                       </div>
                       <Cloud className="w-4 h-4 text-purple-300" />
+                    </button>
+                  ))}
+                </div>
+
+                {(hasWebGPU || forceGPU) && (
+                  <>
+                    <p className="text-purple-400 text-xs mb-2 text-left">On-device GPU (private, requires WebGPU)</p>
+                    <div className="space-y-2 mb-4">
+                      {webgpuModels.map(m => (
+                        <button
+                          key={m.id}
+                          onClick={() => setSelectedModel(m.id)}
+                          className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors ${selectedModel === m.id ? 'bg-purple-500/30 border border-purple-500' : 'bg-white/5 hover:bg-white/10 border border-transparent'}`}
+                        >
+                          <div className="text-left">
+                            <p className={`font-medium ${selectedModel === m.id ? 'text-white' : 'text-purple-200'}`}>
+                              {m.name}
+                              {downloadedModels.includes(m.id) && <span className="ml-2 text-xs text-green-400">✓ cached</span>}
+                            </p>
+                            <p className="text-purple-400 text-xs">{m.desc}</p>
+                          </div>
+                          <span className="text-purple-300 text-sm">{m.size}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <p className="text-purple-400 text-xs mb-2 text-left">On-device CPU (private, works everywhere)</p>
+                <div className="space-y-2 mb-4">
+                  {cpuModels.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => setSelectedModel(m.id)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors ${selectedModel === m.id ? 'bg-purple-500/30 border border-purple-500' : 'bg-white/5 hover:bg-white/10 border border-transparent'}`}
+                    >
+                      <div className="text-left">
+                        <p className={`font-medium ${selectedModel === m.id ? 'text-white' : 'text-purple-200'}`}>
+                          {m.name}
+                          {downloadedModels.includes(m.id) && <span className="ml-2 text-xs text-green-400">✓ cached</span>}
+                        </p>
+                        <p className="text-purple-400 text-xs">{m.desc}</p>
+                      </div>
+                      <span className="text-purple-300 text-sm">{m.size}</span>
                     </button>
                   ))}
                 </div>
@@ -461,7 +504,7 @@ export default function TextSummarizer() {
                 <span className="text-white font-medium">{selectedCloudModel?.name}</span>
               </div>
               <button
-                onClick={() => setSelectedModel(localModels[0].id)}
+                onClick={() => setSelectedModel(cpuModels[0].id)}
                 className="text-purple-300/70 text-xs hover:text-purple-300"
               >
                 Change model

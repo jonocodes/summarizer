@@ -12,7 +12,7 @@ npm install -D tailwindcss @tailwindcss/vite
 
 ## Run it
 
-npm run dev
+bun run dev
 
 Open http://localhost:5173 in Chrome/Edge (WebGPU) or Firefox (CPU fallback).
 
@@ -20,7 +20,7 @@ Open http://localhost:5173 in Chrome/Edge (WebGPU) or Firefox (CPU fallback).
 ## Run the API service (optional)
 
 npm install
-npm run server
+bun run server
 
 Then POST to http://localhost:3001/api/summarize :
 
