@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileText, Sparkles, ChevronDown, ChevronUp, Download, Cpu, Settings } from 'lucide-react';
+import { FileText, Sparkles, ChevronDown, ChevronUp, Download, Cpu, Settings, Cloud, Key } from 'lucide-react';
 import sampleText from './sample-text.txt?raw';
 
 const webllmWorkerCode = `
@@ -106,8 +106,70 @@ export default function TextSummarizer() {
     { id: 'qwen-0.5b-cpu', name: 'Qwen2.5 0.5B', hfId: 'onnx-community/Qwen2.5-0.5B-Instruct', size: '~350 MB', desc: 'Best for CPU' }
   ];
 
+  const cloudModels = [
+    { id: 'groq-llama', name: 'Llama 3.3 70B', provider: 'groq', model: 'llama-3.3-70b-versatile', desc: 'Groq — free tier, very fast' },
+    { id: 'openai-gpt4o-mini', name: 'GPT-4o Mini', provider: 'openai', model: 'gpt-4o-mini', desc: 'Fast & affordable' },
+    { id: 'openai-gpt4o', name: 'GPT-4o', provider: 'openai', model: 'gpt-4o', desc: 'Most capable' },
+  ];
+
+  const [apiKeys, setApiKeys] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('apiKeys') || '{}'); }
+    catch { return {}; }
+  });
+
   const useGPU = hasWebGPU || forceGPU;
-  const models = useGPU ? webgpuModels : cpuModels;
+  const localModels = useGPU ? webgpuModels : cpuModels;
+  const models = localModels; // Keep for backward compat
+  const isCloudModel = cloudModels.some(m => m.id === selectedModel);
+  const selectedCloudModel = cloudModels.find(m => m.id === selectedModel);
+  const currentProvider = selectedCloudModel?.provider;
+  const hasApiKey = currentProvider && apiKeys[currentProvider];
+
+  const saveApiKey = (provider, key) => {
+    const updated = { ...apiKeys, [provider]: key };
+    setApiKeys(updated);
+    localStorage.setItem('apiKeys', JSON.stringify(updated));
+  };
+
+  const callCloudApi = async (prompt) => {
+    const model = selectedCloudModel;
+    const key = apiKeys[model.provider];
+
+    if (model.provider === 'openai') {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model: model.model, messages: [{ role: 'user', content: prompt }], max_tokens: 1000 })
+      });
+      if (!res.ok) throw new Error((await res.json()).error?.message || res.statusText);
+      const data = await res.json();
+      return data.choices[0].message.content;
+    }
+
+    if (model.provider === 'gemini') {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model.model}:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      if (!res.ok) throw new Error((await res.json()).error?.message || res.statusText);
+      const data = await res.json();
+      return data.candidates[0].content.parts[0].text;
+    }
+
+    if (model.provider === 'groq') {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model: model.model, messages: [{ role: 'user', content: prompt }], max_tokens: 1000 })
+      });
+      if (!res.ok) throw new Error((await res.json()).error?.message || res.statusText);
+      const data = await res.json();
+      return data.choices[0].message.content;
+    }
+
+    throw new Error('Unknown provider');
+  };
 
   const toneOptions = [
     { value: 'neutral', label: 'Neutral' },
@@ -249,14 +311,33 @@ export default function TextSummarizer() {
     return `${parts.join(' ')}\n\nText:\n${text}\n\nSummary:`;
   };
 
-  const summarize = () => {
-    if (!text.trim() || !workerRef.current || modelStatus !== 'ready') return;
-    setLoading(true);
-    setError('');
-    setSummary('');
-    setGenerationTime(0);
-    timerRef.current = setInterval(() => setGenerationTime(t => t + 0.1), 100);
-    workerRef.current.postMessage({ type: 'generate', payload: { prompt: buildPrompt() } });
+  const summarize = async () => {
+    if (!text.trim()) return;
+    if (isCloudModel) {
+      if (!hasApiKey) return;
+      setLoading(true);
+      setError('');
+      setSummary('');
+      setGenerationTime(0);
+      timerRef.current = setInterval(() => setGenerationTime(t => t + 0.1), 100);
+      try {
+        const result = await callCloudApi(buildPrompt());
+        setSummary(result);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+        clearInterval(timerRef.current);
+      }
+    } else {
+      if (!workerRef.current || modelStatus !== 'ready') return;
+      setLoading(true);
+      setError('');
+      setSummary('');
+      setGenerationTime(0);
+      timerRef.current = setInterval(() => setGenerationTime(t => t + 0.1), 100);
+      workerRef.current.postMessage({ type: 'generate', payload: { prompt: buildPrompt() } });
+    }
   };
 
   const SelectGroup = ({ label, value, onChange, options }) => (
@@ -306,14 +387,16 @@ export default function TextSummarizer() {
           </div>
         )}
 
-        {hasWebGPU !== null && modelStatus !== 'ready' && (
+        {hasWebGPU !== null && modelStatus !== 'ready' && !isCloudModel && (
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 mb-4">
             {modelStatus === 'idle' && (
               <div className="text-center">
                 <Cpu className="w-10 h-10 text-purple-300 mx-auto mb-3" />
                 <p className="text-purple-200 text-sm mb-4">Select a model</p>
+
+                <p className="text-purple-400 text-xs mb-2 text-left">On-device (private)</p>
                 <div className="space-y-2 mb-4">
-                  {models.map(m => (
+                  {localModels.map(m => (
                     <button
                       key={m.id}
                       onClick={() => setSelectedModel(m.id)}
@@ -330,6 +413,27 @@ export default function TextSummarizer() {
                     </button>
                   ))}
                 </div>
+
+                <p className="text-purple-400 text-xs mb-2 text-left">Cloud APIs (bring your own key)</p>
+                <div className="space-y-2 mb-4">
+                  {cloudModels.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => setSelectedModel(m.id)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors ${selectedModel === m.id ? 'bg-blue-500/30 border border-blue-500' : 'bg-white/5 hover:bg-white/10 border border-transparent'}`}
+                    >
+                      <div className="text-left">
+                        <p className={`font-medium ${selectedModel === m.id ? 'text-white' : 'text-purple-200'}`}>
+                          {m.name}
+                          {apiKeys[m.provider] && <span className="ml-2 text-xs text-green-400">✓ key saved</span>}
+                        </p>
+                        <p className="text-purple-400 text-xs">{m.desc}</p>
+                      </div>
+                      <Cloud className="w-4 h-4 text-purple-300" />
+                    </button>
+                  ))}
+                </div>
+
                 <button onClick={loadModel} className="bg-purple-500 hover:bg-purple-600 text-white font-medium px-6 py-3 rounded-xl transition-colors inline-flex items-center gap-2">
                   {isSelectedModelCached ? <Cpu className="w-4 h-4" /> : <Download className="w-4 h-4" />}
                   {isSelectedModelCached ? 'Load' : 'Download'} {models.find(m => m.id === selectedModel)?.name}
@@ -349,7 +453,51 @@ export default function TextSummarizer() {
           </div>
         )}
 
-        {modelStatus === 'ready' && (
+        {isCloudModel && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-blue-300" />
+                <span className="text-white font-medium">{selectedCloudModel?.name}</span>
+              </div>
+              <button
+                onClick={() => setSelectedModel(localModels[0].id)}
+                className="text-purple-300/70 text-xs hover:text-purple-300"
+              >
+                Change model
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-purple-200 text-xs mb-1 block flex items-center gap-1">
+                  <Key className="w-3 h-3" />
+                  {currentProvider === 'openai' ? 'OpenAI' : currentProvider === 'gemini' ? 'Google AI' : 'Groq'} API Key
+                </label>
+                <input
+                  type="password"
+                  value={apiKeys[currentProvider] || ''}
+                  onChange={(e) => saveApiKey(currentProvider, e.target.value)}
+                  placeholder={`Enter your ${currentProvider} API key`}
+                  className="w-full bg-white/10 rounded-lg px-3 py-2 text-white placeholder-purple-300/50 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+              </div>
+              {hasApiKey ? (
+                <div className="flex items-center gap-2 text-green-300 text-sm">
+                  <div className="w-2 h-2 bg-green-400 rounded-full" />
+                  Ready to summarize
+                </div>
+              ) : (
+                <p className="text-purple-300/70 text-xs">
+                  {currentProvider === 'openai' && 'Get your key at platform.openai.com'}
+                  {currentProvider === 'gemini' && 'Get your key at aistudio.google.com'}
+                  {currentProvider === 'groq' && 'Get your key at console.groq.com'}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {modelStatus === 'ready' && !isCloudModel && (
           <div className="flex items-center justify-between bg-green-500/20 border border-green-500/30 rounded-xl px-4 py-2 mb-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full" />
@@ -427,7 +575,7 @@ export default function TextSummarizer() {
 
         <button
           onClick={summarize}
-          disabled={!text.trim() || loading || modelStatus !== 'ready'}
+          disabled={!text.trim() || loading || (isCloudModel ? !hasApiKey : modelStatus !== 'ready')}
           className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 text-white font-semibold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
         >
           {loading ? (
