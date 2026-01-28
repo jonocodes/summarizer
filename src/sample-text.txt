@@ -1,0 +1,293 @@
+The BLOG
+From Microsoft to Microslop to Linux: Why I Made the Switch
+
+January 26, 2026
+What's better than a devil you don't know?
+The devil you do.
+
+I've used Windows for as long as I've been alive. At 6 years old, my first computer was a Windows 98 machine, with an Athlon XP 1900+ (Palomino core) and a GeForce 440 MX, blessed with a generous 256 megabytes of RAM.
+
+Looking back, I kinda got scammed with that graphics card, but what could I do? I was a silly kid. (The missing shader support came back to bite me in the ass)
+
+Also, is it weird that I still remember the specs of my first computer, 22 years later?
+
+Anyway, Windows has been familiar and comfortable. I knew all the workarounds and how to extract maximum efficiency from it.
+
+I was a happy user, for over 20 years, and Windows has been my go-to for everything computer-related.
+
+Even after becoming a software developer and using a macbook, I'd still find myself reaching for Windows at times.
+
+That is, until Microsoft decided to turn it into something completely unrecognizable and unusable.
+
+Microsoft is a company that turns OS into slop
+
+It all came crashing down
+
+I think it started with the Windows 10 full-screen ads.
+
+You know, those friendly suggestions telling you to try OneDrive or to "use the recommended browser settings" (reads as "please try Edge and OneDrive, we're desperate").
+
+Windows 10 full-screen ads
+
+Actually, scratch that, I think it really started with the non-consensual updates:
+
+    Oh you're doing work? That's so cute... we're gonna close whatever apps you had open, because we're updating now. We own your computer.
+
+    You had unsaved work? Too bad, it's gone, get bent.
+
+
+
+At first I ignored it, and carried on as normal. Sure, I'd get mad from time to time and I'd complain.
+
+But hey, nothing beats the convenience of being able to have all of your applications in one place
+Right? Right?
+
+My breaking point came with the 24H2 update. It installed on my system without my consent, like any other major update. I knew there were problems with it, people were already complaining on Reddit, so I just postponed it, and kept postponing it.
+
+All it took was for me to leave my computer on and unattended for a while, and BOOM, just like that - the major OS update that nobody wanted, it was on my computer.
+
+The Chrome Seizure Incident
+Spoiler: all hell broke loose.
+
+As soon as 24H2 landed on my machine, I encountered a bug so bizarre I thought I was losing my marbles.
+If Chrome was positioned under any other window, it would start having what I can only describe as a visual seizure.
+Here's Ableton Live with Chrome (Reddit) under it:
+
+Windows 24H2 being a piece of shit
+
+Worse, there was a decent chance this would trigger a full system lock, leaving me smashing my desk in impotent rage. I shit you not.
+
+Gif of of XQC raging
+
+I tried to rollback. The rollback failed with an error. I reinstalled Windows. The bug persisted.
+Like digital herpes, I just couldn't get rid of it.
+
+The solution? Installing an Insider build. Yes, the solution to Microsoft's broken stable release was to use their unstable release.
+
+The Sequel I Never Wanted
+
+The Insider build worked...sort of. But now I had a new bug: Chrome would randomly lock up for about 30 seconds when a video was playing. My options were to wait it out or press Ctrl+Alt+Delete and Esc to force my way back to a working browser. After some digging, I discovered this was caused by an NVIDIA-Microsoft driver incompatibility.
+
+Links here:
+
+    Link 1
+    Link 2
+    Link 3
+    Link 4
+    Link 5
+    Link 6
+
+
+I've found out that the flickers and the chrome lock-up issues are likely caused by the Multiplane Overlay (MPO) pipeline. Microsoft blamed NVIDIA for not correctly implementing it in their drivers. NVIDIA blamed Microsoft. What's clear is that if you were facing this issue, you were essentially screwed because these 2 companies would just pass the hot potato to each other.
+
+I should mention that this bug persisted even after I went off the Insider build and on 25H2. And when I posted on r/Microsoft, they just deleted it.
+
+The latest and greatest OS surely cannot be broken beyond repair, surely I'm using my PC wrong.
+
+So there I was, finally grasping the reality of what you're up against, as a Windows user:
+
+    Random bugs that break basic functionality
+    Updates that install without permission and brick my system
+    Copilot and OneDrive ads appearing in every corner of the OS
+    Copilot buttons everywhere, coming for every application
+    Can't even make a local account without hacking the setup with Rufus (they even removed the terminal workaround)
+    Zero actionable fixes or even an aknowledgment of their fuckups
+
+
+People often say Linux is "too much work.".
+
+And I agree. They're completely justified to complain. There's the documentation page diving, the forums, the reddit threads. And, most importantly, you have to basically rewire your brain and stop expecting it to behave like Windows used to.
+
+But I looked at the list above and realized: Windows is now also too much work.
+And the difference with Windows is that you're going to do all that work while actively fighting your computer only for it to be undone when the next surprise update comes and ruins everything.
+
+You might be thinking "just disable updates, man" or "just install LTSC", or "just run some random debloat script off of GitHub". Why? Why would I jump through all these hoops? I'd rather put in the effort for an OS that knows what consent is and respects me as a user.
+
+Could the grass actually be greener on the other side?
+
+To set the stage: I'm a software developer and a musician.
+
+    GitHub
+    Spotify
+
+
+As you can imagine, I was legitimately worried about app support on Linux, and how it would distrupt my workflow.
+
+But after Chrome crashing for the 10000th time, I said "enough is enough", and decided to go big. I installed CachyOS, a performance-focused Arch-based distribution, on my main machine (9800X3D, RTX 5080).
+
+It wasn't a painless process. In fact, sleep mode was broken from the start, and my system would fail to detect the monitor after waking up.
+
+What's more, Ableton Live does not have a native Linux build, only Windows and macOS. So I couldn't use it anymore, at least not without fucking around with Wine (which doesn't fully support it), or without keeping a Windows VM and taking an L on audio latency.
+
+But unlike Windows, on CachyOS I could actually fix my NVIDIA woes by following this thread on their forum.
+
+All I had to do was add the NVIDIA modules to mkinitcpio. One config change, a command to rebuild the initramfs, and problem solved.
+
+I also found a good native alternative to Ableton Live - Bitwig Studio, which bothered to release a native Linux Build.
+
+Thanks to the constant progress that was made with Pipewire, I'm getting audio latency on par with Mac OS, and lower than Windows. And my workflow didn't even change that much, since Bitwig is made by ex-Ableton developers that seem to give a shit.
+
+As for my development tools, on Windows you already accept the fact that you WILL use WSL or docker, so realistically I just cut the broken middleman.
+
+Now compare that to the Windows fuckery above.
+
+What You're Signing Up For
+
+If 3 years ago you would have told me that Microsoft would singlehandedly sabotage their own OS, doing more Linux marketing than the most neckbearded Linux fanboy (or the most femboy Thinkpad enjoyer), I'd have laughed in your face, called you delusional, and then hurled some more insults your way.
+
+Yet here we are, I've been dual-booting CachyOS for over a year, and in the last month I've been using it exclusively.
+
+So what is the actual state of Linux in 2026, from my honest perspective?
+
+Web Browsing
+
+All major browsers (Chrome, Firefox, Edge, Brave) have native Linux builds. Full support. No compromises.
+Video playback works flawlessly, with hardware acceleration even. On AMD, on NVidia and yes, on Intel too.
+
+Software Development
+
+Linux is the preferred platform for development.
+
+Better terminal support, native package managers, Docker runs natively without the WSL overhead, and your production servers are probably running Linux anyway.
+
+Hell, even Microsoft has their own Linux distro, Azure Linux (Formerly CBL-Mariner).
+
+Content Creation
+
+This is where people assume Linux falls short. And they're right, but not completely:
+
+    Adobe Suite: Runs via Winboat. Far from perfect (no video acceleration, laggy at times), but functional
+    DaVinci Resolve: Native Linux app. Professional-grade video editing, free tier available
+    Kdenlive: Native Linux app, completely free and open source
+
+
+Music Production
+
+    Bitwig Studio: Incredible DAW that was designed that runs natively on Linux
+    Ardour: Native, free, open-source DAW
+    Audio latency: Thanks to PipeWire, Linux audio latency is actually lower than Windows
+
+
+Gaming
+
+Here's where things get interesting. The perception is that gaming on Linux is a compromise. In 2026, that's increasingly untrue:
+
+    Proton/Wine: Pretty much all games without kernel-level anti-cheat work out of the box through Steam's Proton compatibility layer
+    Performance: For AMD GPUs, gaming performance is on par with Windows, on average
+    NVIDIA: There was a 10-30% performance penalty on Intel/NVIDIA GPU setups, but recent Vulkan extensions are taking care of that.
+
+NVIDIA has released beta drivers making use of these improvements, and once Wine/DXVK/Proton are updated to make use of the extensions, the performance delta should be essentially gone
+
+The only real limitation is that some games with anti-cheat like Valorant, Call of Duty or League of Legends won't run. But honestly I think not being able to launch League of Legends is actually a feature - one final reason to install Linux.
+
+It's not all bad, though. Arc Raiders makes use of Easy Anti-Cheat, yet runs flawlessly. In fact, I've been playing it like a madman. It goes to show that if the developers want to, it's possible.
+
+3D Modeling
+
+Still falls short compared to Windows and Mac OS (Autodesk, I'm looking at you).
+
+The silver lining is that Blender has a native build. So if it's your main application, you're good to go.
+
+General Usage
+
+Basic operations are so much faster on Linux. Opening directories, launching applications, system responsiveness. It's like your computer took a line of coke, and is now ready to work.
+
+No more waiting for the Start menu to decide it wants to open. No more File Explorer hanging when you need it the most.
+
+Since we're on the topic of Linux improvements, I want to address the elephant in the room - people who keep saying "I want to switch", but keep moving the goalposts:
+
+    "I'll switch when Linux supports X."
+
+    Linux supports X.
+
+    "Okay, but what about Y?"
+
+    Linux supports Y.
+
+    "Well, Z is still missing..."
+
+
+If you're always finding the next reason not to switch, you're not looking for solutions, you're looking for excuses to stay complacent.
+
+I was that person, so I would know.
+
+At the same time, I want to take it down a notch and say that there are still plenty of use cases (Especially creative work, and like stated previously, 3D modelling and also Game Dev) where it simply doesn't make sense to switch.
+
+So if you're in that scenario, don't feel pressured, just wait for things to improve.
+
+And if you don't plan on ever switching, more power to you.
+
+I'm not here to judge, just here to vent my Microsoft frustrations.
+
+And I didn't really want to switch either, because who wants to re-learn how their computer should be operated from scratch? What I really wanted was for Windows to work, but Microsoft didn't.
+
+The Windows Retrospective
+
+While I'm enjoying my new Linux setup, Windows 11 is having a miserable year, and we're only a month in!
+
+According to Windows Latest, there were over 20 major update problems in 2025 alone, and 2026 is starting off strong, with the January update causing black screens and Outlook crashes.
+
+Here's a quick 2025 Spotify Wrapped of the bugs Windows users dealt with:
+
+    USB audio devices randomly stopped working
+    Webcams failed to be detected
+    BitLocker settings became inaccessible
+    Adobe Premiere Pro couldn't drag clips on the timeline
+    Cursor constantly spinning for no reason
+    Remote Desktop sessions randomly disconnecting
+    The Copilot app accidentally getting deleted (okay, this is actually a good change for once)
+    Blue screens of death in mandatory security updates
+    Windows Hello face recognition broken
+    File Explorer becoming unresponsive
+    FPS drops and system reboots while gaming
+    Task Manager spawning infinite copies of itself
+    Dark mode breaking with white flashes
+
+
+And the company's response? Crickets. They're busy boasting that 30% of their code is currently being written by AI. Don't worry, Microsoft, we can definitely tell.
+
+For the remainder of 2026, Microsoft is cooking up a big one: replacing more and more native apps with React Native. But don't let the name fool you, there's nothing "native" about it. These are projects designed to be easily ported across any machine and architecture, because underneath it all, it's just JavaScript.
+
+And each one spawns its own Chromium process, gobbling up your RAM so you can enjoy the privilege of opening the Settings app.
+
+I could maybe understand this for a weather widget. But when it's coming for core system apps, it's LAZY!
+
+I'm gonna go full conspiracy nut here, but I bet it's because the LLM understands JavaScript better, and Microsoft can't be asked to pay actual humans to write proper native code.
+
+Meanwhile, entire governments are abandoning Windows for Linux, the term "Microslop" is trending on social media, and Windows 11's reputation is at its lowest point ever.
+
+Not Because I Wanted To, But Because Microsoft Forced My Hand
+
+So here I am. Fully switched to Linux.
+
+Not because I'm some open-source idealist or command-line warrior (I'm just some guy), but because Microsoft turned into Microslop.
+
+New Microslop logo
+
+Meanwhile, Microsoft CEO Satya Nadella wrote a blog post asking people to stop calling AI-generated content "slop" and to think of AI as "bicycles for the mind."
+
+Well, Mr Satya, I have a couple of bicycles that will blow your mind:
+
+You are the biggest Linux evangelist there ever was, you single-handedly convinced countless people to ditch your buggy, ad-ridden, bloated, slop-infested mess of an OS.
+
+And worst of all, you're like a pit bull that has lock-jawed onto OpenAI's ballsack, and you're not letting go, not matter how much we tell you to.
+
+So we're calling slop for what it is: disgusting slop.
+
+You're chasing profit like your life depends on it, yet you've completely forgotten the very thing that generates profit: user satisfaction.
+
+Now you're stuck in a circlejerk of fake value in a fake bubble, and OpenAI's hand is so far up your ass they're playing shadow puppets with your tonsils.
+
+The time to switch is now. The tools are ready. The only question is: are you?
+
+
+
+Satya came down from his cloud in the sky,
+
+With Copilot dreams and a gleam in his eye,
+
+He sprinkled AI on each app, every field,
+
+Till users cried "Fuck!", and the slop was revealed.
+
+
