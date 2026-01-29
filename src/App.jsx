@@ -53,6 +53,82 @@ self.onmessage = async (e) => {
 };
 `;
 
+// Simple markdown renderer for summaries
+function renderMarkdown(text) {
+  if (!text) return null;
+
+  const lines = text.split('\n');
+  const elements = [];
+  let listItems = [];
+
+  const processInline = (line) => {
+    // Process bold **text**
+    const parts = [];
+    let remaining = line;
+    let key = 0;
+
+    while (remaining) {
+      const boldMatch = remaining.match(/[*][*](.+?)[*][*]/);
+      if (boldMatch) {
+        const idx = boldMatch.index;
+        if (idx > 0) parts.push(remaining.slice(0, idx));
+        parts.push(<strong key={key++} className="font-semibold">{boldMatch[1]}</strong>);
+        remaining = remaining.slice(idx + boldMatch[0].length);
+        continue;
+      }
+      parts.push(remaining);
+      break;
+    }
+    return parts.length ? parts : line;
+  };
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={elements.length} className="list-disc list-inside space-y-1 my-2">
+          {listItems.map((item, idx) => <li key={idx}>{processInline(item)}</li>)}
+        </ul>
+      );
+      listItems = [];
+    }
+  };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+
+    // Empty line
+    if (!trimmed) {
+      flushList();
+      return;
+    }
+
+    // Bullet points: * item or - item
+    if (/^[*\-•]\s+/.test(trimmed)) {
+      listItems.push(trimmed.replace(/^[*\-•]\s+/, ''));
+      return;
+    }
+
+    // Headers: ## or ###
+    if (/^#{1,3}\s+/.test(trimmed)) {
+      flushList();
+      const level = trimmed.match(/^(#+)/)[1].length;
+      const content = trimmed.replace(/^#+\s+/, '');
+      const className = level === 1 ? 'text-lg font-bold mt-3 mb-2' :
+                        level === 2 ? 'text-base font-semibold mt-3 mb-1' :
+                        'text-sm font-semibold mt-2 mb-1';
+      elements.push(<div key={elements.length} className={className}>{processInline(content)}</div>);
+      return;
+    }
+
+    // Regular paragraph
+    flushList();
+    elements.push(<p key={elements.length} className="mb-2">{processInline(trimmed)}</p>);
+  });
+
+  flushList();
+  return elements;
+}
+
 export default function TextSummarizer() {
   const [text, setText] = useState(sampleText);
   const [summary, setSummary] = useState('');
@@ -649,7 +725,7 @@ export default function TextSummarizer() {
               <h3 className="text-purple-200 text-sm font-medium">Summary</h3>
               <span className="text-purple-300 text-xs">{generationTime.toFixed(1)}s</span>
             </div>
-            <div className="text-white whitespace-pre-wrap text-base leading-relaxed">{summary}</div>
+            <div className="text-white text-base leading-relaxed">{renderMarkdown(summary)}</div>
           </div>
         )}
       </div>
